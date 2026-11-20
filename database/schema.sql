@@ -2,9 +2,9 @@
 -- MyHotel Database Schema
 -- ============================================
 
--- Drop and recreate database
-DROP DATABASE IF EXISTS myHotel;
-CREATE DATABASE myHotel;
+-- Create database if not exist
+CREATE DATABASE IF NOT EXISTS myHotel
+    CHARACTER SET utf8mb4;
 USE myHotel;
 
 -- ============================================
@@ -23,7 +23,7 @@ CREATE TABLE Hotel (
     CheckInTime TIME NOT NULL,
     PRIMARY KEY (HotelID),
     CONSTRAINT chk_hotel_rating CHECK (Rating BETWEEN 1 AND 6)
-)
+);
 
 -- 2. Named categories of nearby natural/geographic features
 CREATE TABLE NearbyFeature (
@@ -31,7 +31,7 @@ CREATE TABLE NearbyFeature (
     FeatureName VARCHAR(50) NOT NULL,
     PRIMARY KEY (FeatureID),
     UNIQUE KEY uq_nearby_feature_name (FeatureName)
-)
+);
 
 -- 3. Many-to-many: hotels and nearby features
 CREATE TABLE HotelNearbyFeature (
@@ -42,7 +42,7 @@ CREATE TABLE HotelNearbyFeature (
         REFERENCES Hotel(HotelID),
     CONSTRAINT fk_hnf_feature FOREIGN KEY (FeatureID)
         REFERENCES NearbyFeature(FeatureID)
-)
+);
 
 -- 4. Master amenity list
 CREATE TABLE Amenity (
@@ -50,7 +50,7 @@ CREATE TABLE Amenity (
     AmenityName VARCHAR(100) NOT NULL,
     PRIMARY KEY (AmenityID),
     UNIQUE KEY uq_amenity_name (AmenityName)
-)
+);
 
 -- 5. Hotel-specific amenity availability and price
 -- Price=0.00 means free; never use NULL to mean free.
@@ -64,7 +64,7 @@ CREATE TABLE HotelAmenity (
     CONSTRAINT fk_ha_amenity FOREIGN KEY (AmenityID)
         REFERENCES Amenity(AmenityID),
     CONSTRAINT chk_ha_price CHECK (Price >= 0)
-)
+);
 
 -- ============================================
 -- Rooms: room rates and room types
@@ -81,7 +81,7 @@ CREATE TABLE ConferenceRoom (
     CONSTRAINT fk_conference_hotel FOREIGN KEY (HotelID)
         REFERENCES Hotel(HotelID),
     CONSTRAINT chk_conference_capacity CHECK (Capacity > 0)
-)
+);
 
 -- 7. Chain-wide room categories
 CREATE TABLE RoomType (
@@ -95,7 +95,7 @@ CREATE TABLE RoomType (
     CONSTRAINT chk_roomtype_bedsize CHECK (BedSize IN ('King','Queen','Double')),
     CONSTRAINT chk_roomtype_smoking CHECK (SmokingAllowed IN (0,1)),
     CONSTRAINT chk_roomtype_accessible CHECK (WheelchairAccessible IN (0,1))
-)
+);
 
 -- 8. Current prices by hotel and type
 CREATE TABLE HotelRoomRate (
@@ -108,7 +108,7 @@ CREATE TABLE HotelRoomRate (
     CONSTRAINT fk_rate_type FOREIGN KEY (TypeID)
         REFERENCES RoomType(TypeID),
     CONSTRAINT chk_rate_nonnegative CHECK (NightlyRate >= 0)
-)
+);
 
 -- 9. Physical guest rooms. Each hotel/type combination must have a rate.
 CREATE TABLE Room (
@@ -127,7 +127,7 @@ CREATE TABLE Room (
     CONSTRAINT fk_room_hotel_type FOREIGN KEY (HotelID, TypeID)
         REFERENCES HotelRoomRate(HotelID, TypeID),
     CONSTRAINT chk_room_active CHECK (IsActive IN (0,1))
-)
+);
 
 
 -- ============================================
@@ -142,7 +142,7 @@ CREATE TABLE Person (
     MailingAddress VARCHAR(255) NULL,
     PRIMARY KEY (PersonID),
     INDEX idx_person_name_phone (FullName, Phone)
-)
+);
 
 -- 11. Fictional payment cards ONLY; never put real card data in this demo.
 CREATE TABLE PaymentCard (
@@ -156,7 +156,7 @@ CREATE TABLE PaymentCard (
     CONSTRAINT fk_card_holder FOREIGN KEY (HolderPersonID)
         REFERENCES Person(PersonID),
     CONSTRAINT chk_card_month CHECK (ExpMonth BETWEEN 1 AND 12)
-)
+);
 
 -- ============================================
 -- Reservations / Charges / Bonuses
@@ -187,7 +187,7 @@ CREATE TABLE Reservation (
     CONSTRAINT chk_stay_dates CHECK (CheckOutDate > CheckInDate),
     INDEX idx_reservation_guest (GuestPersonID),
     INDEX idx_reservation_due (Status, ScheduledCheckInAtUTC)
-)
+);
 
 -- 13. Room assignments within each reservation; booked rate is historical.
 -- Additional cross-table rules (same hotel, no overlapping active stays)
@@ -202,7 +202,7 @@ CREATE TABLE ReservedRoom (
     CONSTRAINT fk_rr_room FOREIGN KEY (RoomID)
         REFERENCES Room(RoomID),
     CONSTRAINT chk_booked_nightly_rate CHECK (BookedNightlyRate >= 0)
-)
+);
 
 -- 14. Itemized charges for a reservation. Uses Reservation.CardID.
 CREATE TABLE Charge (
@@ -223,7 +223,7 @@ CREATE TABLE Charge (
         (ChargeType = 'Amenity' AND AmenityID IS NOT NULL)
         OR (ChargeType <> 'Amenity' AND AmenityID IS NULL)
     )
-)
+);
 
 -- 15. One bonus record per person and booking year.
 CREATE TABLE BonusAward (
@@ -235,4 +235,4 @@ CREATE TABLE BonusAward (
     PRIMARY KEY (PersonID, BookingYear),
     CONSTRAINT fk_bonus_person FOREIGN KEY (PersonID)
         REFERENCES Person(PersonID)
-)
+);
