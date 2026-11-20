@@ -12,221 +12,227 @@ USE myHotel;
 -- ============================================
 
 CREATE TABLE Hotel (
-    HotelID INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
-    Name VARCHAR(50) NOT NULL, 
-    Street VARCHAR(50) NOT NULL,
-    City VARCHAR(50) NOT NULL, 
-    State VARCHAR(2) NOT NULL, 
-    PostalCode VARCHAR(10) NOT NULL,
+    HotelID INT NOT NULL AUTO_INCREMENT,
+    Name VARCHAR(100) NOT NULL,
+    Street VARCHAR(150) NOT NULL,
+    City VARCHAR(100) NOT NULL,
+    State VARCHAR(100) NOT NULL,
+    PostalCode VARCHAR(20) NOT NULL,
     Rating INT NOT NULL,
-    TimeZone VARCHAR(40) NOT NULL,
+    TimeZone VARCHAR(64) NOT NULL,
     CheckInTime TIME NOT NULL,
+    PRIMARY KEY (HotelID),
+    CONSTRAINT chk_hotel_rating CHECK (Rating BETWEEN 1 AND 6)
+)
 
-    UNIQUE(Name, City),
-    CONSTRAINT check_rating CHECK (Rating BETWEEN 1 AND 6)
-);
-
-CREATE TABLE NearbyFeatures (
-    FeatureName VARCHAR(50) PRIMARY KEY NOT NULL
-
-);
-
-CREATE TABLE HotelNearbyFeatures (
-    HotelID INT NOT NULL,
+-- 2. Named categories of nearby natural/geographic features
+CREATE TABLE NearbyFeature (
+    FeatureID INT NOT NULL AUTO_INCREMENT,
     FeatureName VARCHAR(50) NOT NULL,
-    
-    PRIMARY KEY (HotelID, FeatureName),
-    FOREIGN KEY (HotelID) REFERENCES Hotel(HotelID),
-    FOREIGN KEY (FeatureName) REFERENCES NearbyFeatures(FeatureName)
+    PRIMARY KEY (FeatureID),
+    UNIQUE KEY uq_nearby_feature_name (FeatureName)
+)
 
-);
-
-CREATE TABLE Amenities (
-    AmenityName VARCHAR(50) PRIMARY KEY NOT NULL
-);
-
-CREATE TABLE HotelAmenities (
+-- 3. Many-to-many: hotels and nearby features
+CREATE TABLE HotelNearbyFeature (
     HotelID INT NOT NULL,
-    AmenityName VARCHAR(50) NOT NULL,
-    Price DECIMAL(8, 2) NULL,
-    
-    PRIMARY KEY (HotelID, AmenityName),
-    FOREIGN KEY (HotelID) REFERENCES Hotel(HotelID),
-    FOREIGN KEY (AmenityName) REFERENCES Amenities(AmenityName)
-);
+    FeatureID INT NOT NULL,
+    PRIMARY KEY (HotelID, FeatureID),
+    CONSTRAINT fk_hnf_hotel FOREIGN KEY (HotelID)
+        REFERENCES Hotel(HotelID),
+    CONSTRAINT fk_hnf_feature FOREIGN KEY (FeatureID)
+        REFERENCES NearbyFeature(FeatureID)
+)
+
+-- 4. Master amenity list
+CREATE TABLE Amenity (
+    AmenityID INT NOT NULL AUTO_INCREMENT,
+    AmenityName VARCHAR(100) NOT NULL,
+    PRIMARY KEY (AmenityID),
+    UNIQUE KEY uq_amenity_name (AmenityName)
+)
+
+-- 5. Hotel-specific amenity availability and price
+-- Price=0.00 means free; never use NULL to mean free.
+CREATE TABLE HotelAmenity (
+    HotelID INT NOT NULL,
+    AmenityID INT NOT NULL,
+    Price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    PRIMARY KEY (HotelID, AmenityID),
+    CONSTRAINT fk_ha_hotel FOREIGN KEY (HotelID)
+        REFERENCES Hotel(HotelID),
+    CONSTRAINT fk_ha_amenity FOREIGN KEY (AmenityID)
+        REFERENCES Amenity(AmenityID),
+    CONSTRAINT chk_ha_price CHECK (Price >= 0)
+)
 
 -- ============================================
 -- Rooms: room rates and room types
 -- ============================================
 
+-- 6. Conference rooms (zero or more per hotel)
 CREATE TABLE ConferenceRoom (
-    ConferenceRoomID INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
+    ConferenceRoomID INT NOT NULL AUTO_INCREMENT,
     HotelID INT NOT NULL,
+    Name VARCHAR(100) NOT NULL,
     Capacity INT NOT NULL,
-    
-    FOREIGN KEY (HotelID) REFERENCES Hotel(HotelID)
-);
+    PRIMARY KEY (ConferenceRoomID),
+    UNIQUE KEY uq_conference_hotel_name (HotelID, Name),
+    CONSTRAINT fk_conference_hotel FOREIGN KEY (HotelID)
+        REFERENCES Hotel(HotelID),
+    CONSTRAINT chk_conference_capacity CHECK (Capacity > 0)
+)
 
+-- 7. Chain-wide room categories
 CREATE TABLE RoomType (
-    TypeID INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
+    TypeID INT NOT NULL AUTO_INCREMENT,
     BedSize VARCHAR(20) NOT NULL,
     SmokingAllowed BOOLEAN NOT NULL,
     WheelchairAccessible BOOLEAN NOT NULL,
+    PRIMARY KEY (TypeID),
+    UNIQUE KEY uq_roomtype_characteristics
+        (BedSize, SmokingAllowed, WheelchairAccessible),
+    CONSTRAINT chk_roomtype_bedsize CHECK (BedSize IN ('King','Queen','Double')),
+    CONSTRAINT chk_roomtype_smoking CHECK (SmokingAllowed IN (0,1)),
+    CONSTRAINT chk_roomtype_accessible CHECK (WheelchairAccessible IN (0,1))
+)
 
-    UNIQUE (BedSize, SmokingAllowed, WheelchairAccessible)
-);
-
+-- 8. Current prices by hotel and type
 CREATE TABLE HotelRoomRate (
     HotelID INT NOT NULL,
     TypeID INT NOT NULL,
-    NightlyRate DECIMAL (8, 2) NOT NULL,
-    
+    NightlyRate DECIMAL(10,2) NOT NULL,
     PRIMARY KEY (HotelID, TypeID),
-    FOREIGN KEY (HotelID) REFERENCES Hotel(HotelID),
-    FOREIGN KEY (TypeID) REFERENCES RoomType(TypeID)
-);
+    CONSTRAINT fk_rate_hotel FOREIGN KEY (HotelID)
+        REFERENCES Hotel(HotelID),
+    CONSTRAINT fk_rate_type FOREIGN KEY (TypeID)
+        REFERENCES RoomType(TypeID),
+    CONSTRAINT chk_rate_nonnegative CHECK (NightlyRate >= 0)
+)
 
+-- 9. Physical guest rooms. Each hotel/type combination must have a rate.
 CREATE TABLE Room (
-    RoomID INT PRIMARY KEY AUTO_INCREMENT NOT NULL, 
-    HotelID INT NOT NULL, 
-    RoomNumber INT NOT NULL,
-    TypeID INT NOT NULL, 
+    RoomID INT NOT NULL AUTO_INCREMENT,
+    HotelID INT NOT NULL,
+    RoomNumber VARCHAR(10) NOT NULL,
+    TypeID INT NOT NULL,
     Floor INT NOT NULL,
-    Direction ENUM('South', 'North', 'East', 'West', 'North-East', 'South-East', 'North-West', 'South-West') NOT NULL, 
-    isActive BOOLEAN NOT NULL DEFAULT TRUE,
-
-    UNIQUE (HotelID, RoomNumber),
-    FOREIGN KEY (HotelID, TypeID) REFERENCES HotelRoomRate(HotelID, TypeID)
-);
+    Direction ENUM('North','South','East','West',
+                   'North-East','South-East','North-West','South-West') NOT NULL,
+    IsActive BOOLEAN NOT NULL DEFAULT TRUE,
+    PRIMARY KEY (RoomID),
+    UNIQUE KEY uq_room_number_in_hotel (HotelID, RoomNumber),
+    CONSTRAINT fk_room_hotel FOREIGN KEY (HotelID)
+        REFERENCES Hotel(HotelID),
+    CONSTRAINT fk_room_hotel_type FOREIGN KEY (HotelID, TypeID)
+        REFERENCES HotelRoomRate(HotelID, TypeID),
+    CONSTRAINT chk_room_active CHECK (IsActive IN (0,1))
+)
 
 
 -- ============================================
 -- People / Payments
 -- ============================================
 
+-- 10. Guests and people who own payment cards
 CREATE TABLE Person (
-    PersonID INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
-    FullName VARCHAR(50) NOT NULL,
-    Phone VARCHAR(20) NOT NULL,
-    MailingAddress VARCHAR(100) NOT NULL,
-    
-    UNIQUE(FullName, Phone)
-);
+    PersonID INT NOT NULL AUTO_INCREMENT,
+    FullName VARCHAR(150) NOT NULL,
+    Phone VARCHAR(25) NOT NULL,
+    MailingAddress VARCHAR(255) NULL,
+    PRIMARY KEY (PersonID),
+    INDEX idx_person_name_phone (FullName, Phone)
+)
 
+-- 11. Fictional payment cards ONLY; never put real card data in this demo.
 CREATE TABLE PaymentCard (
-    CardID INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
-    CardHolderName VARCHAR(50) NOT NULL,
-    CardNumber VARCHAR(20) NOT NULL,
+    CardID INT NOT NULL AUTO_INCREMENT,
+    HolderPersonID INT NOT NULL,
+    CardholderName VARCHAR(150) NOT NULL,
+    CardNumber VARCHAR(25) NOT NULL,
     ExpMonth INT NOT NULL,
     ExpYear INT NOT NULL,
-
-    UNIQUE (CardNumber, ExpMonth, ExpYear)
-);
+    PRIMARY KEY (CardID),
+    CONSTRAINT fk_card_holder FOREIGN KEY (HolderPersonID)
+        REFERENCES Person(PersonID),
+    CONSTRAINT chk_card_month CHECK (ExpMonth BETWEEN 1 AND 12)
+)
 
 -- ============================================
 -- Reservations / Charges / Bonuses
 -- ============================================
 
+-- 12. One reservation is for one hotel and shared date range.
+-- UTC fields are a convention; app must supply/convert UTC values.
 CREATE TABLE Reservation (
-    ReservationID INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
+    ReservationID INT NOT NULL AUTO_INCREMENT,
+    GuestPersonID INT NOT NULL,
     HotelID INT NOT NULL,
-    PersonID INT NOT NULL,
     CardID INT NOT NULL,
+    BookedAtUTC DATETIME NOT NULL,
     CheckInDate DATE NOT NULL,
     CheckOutDate DATE NOT NULL,
-    Status ENUM('Active', 'Cancelled', 'CheckedIn') NOT NULL DEFAULT 'Active',
-    CancelledAt DATETIME NULL,
+    ScheduledCheckInAtUTC DATETIME NOT NULL,
+    ActualCheckInAtUTC DATETIME NULL,
+    CancelledAtUTC DATETIME NULL,
+    Status ENUM('Booked','CheckedIn','CheckedOut','Cancelled','NoShow')
+        NOT NULL DEFAULT 'Booked',
+    PRIMARY KEY (ReservationID),
+    CONSTRAINT fk_reservation_guest FOREIGN KEY (GuestPersonID)
+        REFERENCES Person(PersonID),
+    CONSTRAINT fk_reservation_hotel FOREIGN KEY (HotelID)
+        REFERENCES Hotel(HotelID),
+    CONSTRAINT fk_reservation_card FOREIGN KEY (CardID)
+        REFERENCES PaymentCard(CardID),
+    CONSTRAINT chk_stay_dates CHECK (CheckOutDate > CheckInDate),
+    INDEX idx_reservation_guest (GuestPersonID),
+    INDEX idx_reservation_due (Status, ScheduledCheckInAtUTC)
+)
 
-    FOREIGN KEY (HotelID) REFERENCES Hotel(HotelID),
-    FOREIGN KEY (PersonID) REFERENCES Person(PersonID),
-    FOREIGN KEY (CardID) REFERENCES PaymentCard(CardID)
-);
-
+-- 13. Room assignments within each reservation; booked rate is historical.
+-- Additional cross-table rules (same hotel, no overlapping active stays)
+-- MUST be enforced in the transactional booking service.
 CREATE TABLE ReservedRoom (
     ReservationID INT NOT NULL,
     RoomID INT NOT NULL,
-    BookedNightlyRate DECIMAL (8, 2) NOT NULL,
-
+    BookedNightlyRate DECIMAL(10,2) NOT NULL,
     PRIMARY KEY (ReservationID, RoomID),
-    FOREIGN KEY (ReservationID) REFERENCES Reservation(ReservationID),
-    FOREIGN KEY (RoomID) REFERENCES Room(RoomID)
-);
+    CONSTRAINT fk_rr_reservation FOREIGN KEY (ReservationID)
+        REFERENCES Reservation(ReservationID),
+    CONSTRAINT fk_rr_room FOREIGN KEY (RoomID)
+        REFERENCES Room(RoomID),
+    CONSTRAINT chk_booked_nightly_rate CHECK (BookedNightlyRate >= 0)
+)
 
+-- 14. Itemized charges for a reservation. Uses Reservation.CardID.
 CREATE TABLE Charge (
-    ChargeID INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
+    ChargeID INT NOT NULL AUTO_INCREMENT,
     ReservationID INT NOT NULL,
-    CardID INT NOT NULL,
-    ChargeDate DATE NOT NULL,
-    ChargeType ENUM('Room', 'Amenity', 'CancellationFee', 'Food') NOT NULL,
-    Amount DECIMAL(8, 2) NOT NULL,
+    AmenityID INT NULL,
+    ChargeType ENUM('Room','Food','Amenity','Cancellation') NOT NULL,
+    Amount DECIMAL(10,2) NOT NULL,
+    ChargedAtUTC DATETIME NOT NULL,
+    Description VARCHAR(255) NOT NULL,
+    PRIMARY KEY (ChargeID),
+    CONSTRAINT fk_charge_reservation FOREIGN KEY (ReservationID)
+        REFERENCES Reservation(ReservationID),
+    CONSTRAINT fk_charge_amenity FOREIGN KEY (AmenityID)
+        REFERENCES Amenity(AmenityID),
+    CONSTRAINT chk_charge_amount CHECK (Amount >= 0),
+    CONSTRAINT chk_charge_amenity_type CHECK (
+        (ChargeType = 'Amenity' AND AmenityID IS NOT NULL)
+        OR (ChargeType <> 'Amenity' AND AmenityID IS NULL)
+    )
+)
 
-    FOREIGN KEY (ReservationID) REFERENCES Reservation(ReservationID),
-    FOREIGN KEY (CardID) REFERENCES PaymentCard(CardID)
-);
-
-CREATE TABLE FrequentCustomers (
+-- 15. One bonus record per person and booking year.
+CREATE TABLE BonusAward (
     PersonID INT NOT NULL,
-    Year INT NOT NULL,
-
-    PRIMARY KEY (PersonID, Year),
-    FOREIGN KEY (PersonID) REFERENCES Person(PersonID)
-);
-
--- ============================================
--- Sample data
--- ============================================
-
-INSERT INTO NearbyFeatures (FeatureName)  VALUES
-('Ocean'),
-('Mountain'), 
-('Lake'),
-('River'),
-('Airport'),
-('Downtown');
-
-INSERT INTO Amenities (AmenityName) VALUES
-('Pool'),
-('Spa'),
-('Gym'),
-('Free WiFi'),
-('Parking'),
-('Airport Shuttle'),
-('Breakfast Buffet');
-
-INSERT INTO Hotel (Name, Street, City, State, PostalCode, Rating, TimeZone, CheckInTime) VALUES
-('MyHotel at Chicago Downtown', '100 N State St', 'Chicago', 'IL', '60601', 4, 'America/Chicago', '15:00:00'),
-('MyHotel at O''Hare',          '10000 W O''Hare Ave', 'Chicago', 'IL', '60666', 3, 'America/Chicago', '15:00:00'),
-('MyHotel at Orlando',          '500 International Dr', 'Orlando', 'FL', '32819', 5, 'America/New_York', '16:00:00');
-
-INSERT INTO HotelNearbyFeatures(HotelID, FeatureName) VALUES
-(1, 'Lake'),
-(1, 'River'),
-(1, 'Downtown'),
-(2, 'Airport'),
-(3, 'Lake');
-
-INSERT INTO HotelAmenities (HotelID, AmenityName, Price) VALUES
-(1, 'Free WiFi', NULL), (1, 'Gym', NULL), (1, 'Pool', 15.00), (1, 'Spa', 60.00), (1, 'Parking', 35.00),
-(2, 'Free WiFi', NULL), (2, 'Airport Shuttle', NULL), (2, 'Parking', 20.00),
-(3, 'Free WiFi', NULL), (3, 'Pool', NULL), (3, 'Spa', 80.00), (3, 'Breakfast Buffet', 25.00);
-
-INSERT INTO ConferenceRoom (HotelID, Capacity) VALUES
-(1, 40),
-(1, 120),
-(3, 300);
-
-INSERT INTO RoomType (TypeID, BedSize, SmokingAllowed, WheelchairAccessible) VALUES
-(1,'King',0,0),  (2,'King',0,1),  (3,'King',1,0),  (4,'King',1,1),
-(5,'Queen',0,0), (6,'Queen',0,1), (7,'Queen',1,0), (8,'Queen',1,1),
-(9,'Double',0,0),(10,'Double',0,1),(11,'Double',1,0),(12,'Double',1,1);
-
-INSERT INTO HotelRoomRate (HotelID, TypeID, NightlyRate)
-SELECT h.HotelId, t.TypeID, (80 + CASE t.BedSize WHEN 'King' THEN 30 WHEN 'Queen' THEN 15 ELSE 0 END)
-FROM Hotel h JOIN RoomType t;
-
-INSERT INTO Room (HotelID, RoomNumber, TypeID, Floor, Direction) VALUES
-(1, 101, 1, 1, 'North'),  (1, 102, 2, 1, 'South'),  (1, 201, 5, 2, 'East'),
-(1, 202, 3, 2, 'West'),  (1, 301, 9, 3, 'North-East'), (1, 302, 6, 3, 'South-West'),
-(2, 110, 1, 1, 'North'),  (2, 111, 5, 1, 'East'),  (2, 210, 9, 2, 'South'),
-(3, 1001, 1, 10, 'South-East'), (3, 1002, 2, 10, 'North-West'), (3, 1101, 5, 11, 'West');
-
+    BookingYear SMALLINT NOT NULL,
+    AwardedAtUTC DATETIME NOT NULL,
+    MailedAtUTC DATETIME NULL,
+    Status ENUM('Pending','Mailed') NOT NULL DEFAULT 'Pending',
+    PRIMARY KEY (PersonID, BookingYear),
+    CONSTRAINT fk_bonus_person FOREIGN KEY (PersonID)
+        REFERENCES Person(PersonID)
+)
