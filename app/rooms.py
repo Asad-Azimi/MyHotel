@@ -53,7 +53,7 @@ def find_available_rooms(
                   ON rr.ReservationID = res.ReservationID
 
               WHERE rr.RoomID = r.RoomID
-                AND res.Status <> 'Cancelled'
+                AND res.Status IN ('Booked', 'CheckedIn')
                 AND res.CheckInDate < %s
                 AND res.CheckOutDate > %s
           )
