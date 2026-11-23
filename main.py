@@ -1,5 +1,6 @@
 from app.hotels import list_hotels
 from app.hotels import list_hotels, get_hotel_details
+from app.rooms import find_available_rooms
 
 def show_hotels():
     """Display all hotels."""
@@ -81,11 +82,88 @@ def show_hotel_details():
     else:
         print("None listed.")
 
+def search_available_rooms(accessible_only=False):
+    """Search rooms using customer criteria."""
+
+    city = input("\nEnter city: ").strip()
+
+    check_in = input("Check-in date (YYYY-MM-DD): ").strip()
+    check_out = input("Check-out date (YYYY-MM-DD): ").strip()
+
+    if not city:
+        print("City is required.")
+        return
+
+    bed_size = None
+    smoking = None
+    accessible = None
+
+    if accessible_only:
+        accessible = True
+    else:
+        bed_size = input(
+            "Bed size (King/Queen/Double): "
+        ).strip().title()
+
+        if bed_size not in ("King", "Queen", "Double"):
+            print("Invalid bed size.")
+            return
+
+        answer = input(
+            "Smoking allowed? (y/n): "
+        ).strip().lower()
+
+        if answer not in ("y", "n"):
+            print("Please enter y or n.")
+            return
+
+        smoking = answer == "y"
+
+    try:
+        rooms = find_available_rooms(
+            city=city,
+            check_in=check_in,
+            check_out=check_out,
+            bed_size=bed_size,
+            smoking=smoking,
+            accessible=accessible
+        )
+
+    except ValueError as error:
+        print(f"Invalid dates: {error}")
+        return
+
+    if not rooms:
+        print("\nNo available rooms found.")
+        return
+
+    print(f"\nFound {len(rooms)} available room(s):")
+
+    for room in rooms:
+        print(
+            f"\n{room['HotelName']}"
+            f"\n  Room: {room['RoomNumber']}"
+            f" (ID: {room['RoomID']})"
+            f"\n  Bed: {room['BedSize']}"
+            f"\n  Smoking: "
+            f"{'Yes' if room['SmokingAllowed'] else 'No'}"
+            f"\n  Accessible: "
+            f"{'Yes' if room['WheelchairAccessible'] else 'No'}"
+            f"\n  Rate: ${room['NightlyRate']:.2f}/night"
+        )
+
+
+
+
+
+
 def main():
     while True:
         print("\n=== MyHotel Management System ===")
         print("1. List Hotels")
         print("2. View Hotel Details")
+        print("3. Search Available Rooms")
+        print("4. Search Wheelchair-Accessible Rooms")
         print("0. Exit")
 
         choice = input("\nChoose an option: ").strip()
@@ -99,6 +177,12 @@ def main():
 
         elif choice == "2":
             show_hotel_details()
+
+        elif choice == "3":
+            search_available_rooms()
+
+        elif choice == "4":
+            search_available_rooms(accessible_only=True)
 
         else:
             print("Invalid option. Try again.")
