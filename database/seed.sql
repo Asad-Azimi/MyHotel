@@ -190,20 +190,20 @@ VALUES
 
 -- 10. People: guests and cardholders
 INSERT INTO Person (PersonID, FullName, Phone, MailingAddress) VALUES
-(1, 'Alice Anderson', '202-555-0101', '10 Maple St, San Diego, CA 92101'),
-(2, 'Bob Baker', '202-555-0102', '20 Cedar St, Denver, CO 80201'),
-(3, 'Carla Chen', '202-555-0103', '30 Pine St, San Diego, CA 92102'),
-(4, 'David Diaz', '202-555-0104', '40 Oak St, Chicago, IL 60601'),
-(5, 'Evelyn Evans', '202-555-0105', NULL);
+(1, 'Alice Anderson', '2025550101', '10 Maple St, San Diego, CA 92101'),
+(2, 'Bob Baker', '2025550102', '20 Cedar St, Denver, CO 80201'),
+(3, 'Carla Chen', '2025550103', '30 Pine St, San Diego, CA 92102'),
+(4, 'David Diaz', '2025550104', '40 Oak St, Chicago, IL 60601'),
+(5, 'Evelyn Evans', '2025550105', NULL);
 
 -- 11. Fictional payment cards: NOT real financial information
 INSERT INTO PaymentCard
 (CardID, HolderPersonID, CardholderName, CardNumber, ExpMonth, ExpYear) VALUES
-(1, 1, 'Alice Anderson', 'TEST-ALICE-0001', 12, 2030),
-(2, 2, 'Bob Baker',     'TEST-BOB-0002',   11, 2030),
-(3, 3, 'Carla Chen',    'TEST-CARLA-0003', 10, 2030),
-(4, 4, 'David Diaz',    'TEST-DAVID-0004',  9, 2030),
-(5, 5, 'Evelyn Evans',  'TEST-EVELYN-0005', 8, 2030);
+(1, 1, 'Alice Anderson', '1234567899876', 12, 2030),
+(2, 2, 'Bob Baker',     '1234567899877',   11, 2030),
+(3, 3, 'Carla Chen',    '1234567899878', 10, 2030),
+(4, 4, 'David Diaz',    '1234567899879',  9, 2030),
+(5, 5, 'Evelyn Evans',  '1234567899870', 8, 2030);
 
 -- 12. Reservations
 -- ScheduledCheckInAtUTC is 3 PM Pacific => 23:00 UTC in November/December,
