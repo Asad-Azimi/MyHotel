@@ -1,7 +1,13 @@
+from pathlib import Path
 from app.hotels import list_hotels
 from app.hotels import list_hotels, get_hotel_details
 from app.rooms import find_available_rooms
 from app.reports import get_hotels_near_ocean_or_mountain
+from app.reports import (
+    get_hotels_near_ocean_or_mountain,
+    get_reservation_report,
+    format_reservation_report
+)
 
 def show_hotels():
     """Display all hotels."""
@@ -175,6 +181,33 @@ def show_hotels_near_nature():
         print(f"Nearby: {hotel['FeatureName']}")
 
 
+def show_reservation_report():
+    answer = input("\nEnter Reservation ID: ").strip()
+
+    if not answer.isdigit():
+        print("Invalid Reservation ID.")
+        return
+
+    details = get_reservation_report(int(answer))
+
+    if details is None:
+        print("Reservation not found.")
+        return
+
+    report = format_reservation_report(details)
+
+    print("\n" + report)
+
+    save = input("\nSave report to a text file? (y/n): ").strip().lower()
+
+    if save == "y":
+        folder = Path("generated_reports")
+        folder.mkdir(exist_ok=True)
+
+        filename = folder / f"reservation_{answer}.txt"
+        filename.write_text(report + "\n", encoding="utf-8")
+
+        print(f"Report saved to: {filename}")
 
 
 def main():
@@ -185,6 +218,7 @@ def main():
         print("3. Search Available Rooms")
         print("4. Search Wheelchair-Accessible Rooms")
         print("5. Hotels Near Oceans or Mountains")
+        print("6. Print Reservation Report")
         print("0. Exit")
 
         choice = input("\nChoose an option: ").strip()
@@ -207,6 +241,9 @@ def main():
 
         elif choice == "5":
             show_hotels_near_nature()
+
+        elif choice == "6":
+            show_reservation_report()
 
         else:
             print("Invalid option. Try again.")

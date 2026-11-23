@@ -14,3 +14,5 @@ config.py
 # Editor files
 .vscode/
 .idea/
+
+generated_reports/
