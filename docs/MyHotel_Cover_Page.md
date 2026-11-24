@@ -11,12 +11,12 @@ Instructor: Dr. Nazli Goharian
 
 ## Team members
 
-**Asadullah Azimi**  
+**Asad Azimi**  
 **Amelia Schwenz**
 
 ## Team contributions
 
-**Asadullah Azimi**  
+**Asad Azimi**  
 Worked on the database setup and initial data, hotel and room information, availability and reporting queries, and the hotel management interface. Implemented the hotel, room/rate, and facility-management features, including amenities, nearby features, and conference rooms. Also worked on integration, testing, and fixes to payment-card ownership and charge reporting.
 
 **Amelia Schwenz**  
