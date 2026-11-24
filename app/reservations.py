@@ -237,11 +237,24 @@ def change_guest(res_id, name, phone, address):
 
 def change_card(res_id, card_number, exp_month, exp_year,
                 holder_name=None, holder_phone=None, holder_address=None):
-    # use a different credit card for the reservation (its charges go to the reservation's card)
+    # Allow card changes only before any charges have been recorded.
+    # This prevents existing charges from being attributed to a new card.
     number, month, year = customers.clean_card(card_number, exp_month, exp_year)
     with db.transaction() as cur:
         res = _lock_reservation(cur, res_id)
         _require_status(res, ('Booked', 'CheckedIn', 'CheckedOut'), 'change the card of')
+        cur.execute("""
+            SELECT 1
+            FROM Charge
+            WHERE ReservationID = %s
+            LIMIT 1
+        """, (res_id,))
+
+        if cur.fetchone():
+            raise ValueError(
+                "Cannot change the payment card after charges "
+                "have been recorded for this reservation."
+            )
         cur.execute('SELECT PersonID, FullName FROM Person WHERE PersonID=%s', (res['GuestPersonID'],))
         guest = cur.fetchone()
         card_id = _resolve_card(cur, guest['PersonID'], guest['FullName'], number, month, year,
