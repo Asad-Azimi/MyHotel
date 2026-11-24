@@ -134,19 +134,51 @@ def delete_person(person_id):
 
 # insert/list/update/delete payment cards
 
-def get_or_create_card(cur, holder_person_id, holder_name, number, exp_month, exp_year):
-    #reuse the card if number + expiration already exist, else insert it
-    #the holder is a Person row and may differ from the guest.
-    #returns card_id
+def get_or_create_card(cur, holder_person_id, holder_name,
+                       number, exp_month, exp_year):
+    """Reuse a card only when its registered holder matches."""
+
     number, month, year = clean_card(number, exp_month, exp_year)
-    cur.execute('SELECT CardID FROM PaymentCard WHERE CardNumber=%s AND ExpMonth=%s AND ExpYear=%s LIMIT 1',
-                (number, month, year))
-    row = cur.fetchone()
-    if row:
-        return row['CardID']
-    cur.execute('''INSERT INTO PaymentCard (HolderPersonID, CardholderName, CardNumber, ExpMonth, ExpYear)
-                   VALUES (%s,%s,%s,%s,%s)''',
-                (holder_person_id, _text(holder_name, 'Card holder name', 150), number, month, year))
+    holder_name = _text(holder_name, 'Card holder name', 150)
+
+    cur.execute("""
+        SELECT CardID, HolderPersonID, ExpMonth, ExpYear
+        FROM PaymentCard
+        WHERE CardNumber = %s
+        ORDER BY CardID
+        FOR UPDATE
+    """, (number,))
+
+    existing_cards = cur.fetchall()
+
+    for card in existing_cards:
+        if card['HolderPersonID'] != holder_person_id:
+            raise ValueError(
+                "This card is already registered to another person. "
+                "Enter the existing cardholder's details or use another card."
+            )
+
+        if (card['ExpMonth'], card['ExpYear']) == (month, year):
+            return card['CardID']
+
+    if existing_cards:
+        raise ValueError(
+            "This card already exists with a different expiration date. "
+            "Update the saved card's expiration first."
+        )
+
+    cur.execute("""
+        INSERT INTO PaymentCard
+            (HolderPersonID, CardholderName, CardNumber, ExpMonth, ExpYear)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (
+        holder_person_id,
+        holder_name,
+        number,
+        month,
+        year
+    ))
+
     return cur.lastrowid
 
 
