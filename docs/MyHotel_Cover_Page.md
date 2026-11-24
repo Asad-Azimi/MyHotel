@@ -12,7 +12,7 @@ Instructor: Dr. Nazli Goharian
 ## Team members
 
 **Asadullah Azimi**  
-**Amelia [Last Name — please complete]**
+**Amelia Schwenz**
 
 ## Team contributions
 
