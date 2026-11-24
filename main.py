@@ -3,6 +3,7 @@ from app.hotels import list_hotels
 from app.hotels import list_hotels, get_hotel_details
 from app.rooms import find_available_rooms
 from app.reports import get_hotels_near_ocean_or_mountain
+from app.hotel_cli import hotel_admin_menu
 from app.reports import (
     get_hotels_near_ocean_or_mountain,
     get_reservation_report,
@@ -228,6 +229,7 @@ def main():
         print("7. Customers")
         print("8. Reservations")
         print("9. Charges")
+        print("10. Manage Hotels")
         print("0. Exit")
 
         choice = input("\nChoose an option: ").strip()
@@ -263,6 +265,9 @@ def main():
         elif choice == "9":
             charges_menu()
 
+        elif choice == "10":
+            hotel_admin_menu()
+        
         else:
             print("Invalid option. Try again.")
 
