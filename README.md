@@ -1,7 +1,7 @@
 # MyHotel — Hotel Reservation Management System
 
 **COSC 3510: Introduction to Database · Georgetown University · Fall 2026**  
-**Team:** Asadullah Azimi and Amelia [Last Name]
+**Team:** Asadullah Azimi and Amelia Schwenz
 
 ## Overview
 
