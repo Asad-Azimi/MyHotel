@@ -3,6 +3,7 @@ import pymysql
 from app.room_admin_cli import room_admin_menu
 from app import db
 from app.hotels import add_hotel, update_hotel, delete_hotel
+from app.facilities_cli import facilities_menu
 
 
 def ask_hotel_fields(current=None):
@@ -91,6 +92,7 @@ def hotel_admin_menu():
         print("2. Update Hotel")
         print("3. Delete Hotel")
         print("4. Manage Rooms and Rates")
+        print("5. Manage Hotel Facilities")
         print("0. Back")
 
         choice = input("\nChoose an option: ").strip()
@@ -104,6 +106,8 @@ def hotel_admin_menu():
                 delete_hotel_ui()
             elif choice == "4":
                 room_admin_menu()
+            elif choice == "5":
+                facilities_menu()
             elif choice == "0":
                 return
             else:
