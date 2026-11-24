@@ -164,14 +164,20 @@ def get_charges_for_reservation(res_id):
 
 
 def get_charges_for_person(name, phone):
-    # query 5
-    person = customers.require_person(name, phone)
-    return db.query('''SELECT %s %s
-                       WHERE res.CardID IN (SELECT CardID FROM Reservation WHERE GuestPersonID=%%s
-                                            UNION SELECT CardID FROM PaymentCard WHERE HolderPersonID=%%s)
-                       ORDER BY c.ChargedAtUTC, c.ChargeID''' % (_CHARGE_COLUMNS, _CHARGE_JOINS),
-                    (person['PersonID'], person['PersonID']))
+    """Query 5: Charges associated with a guest or cardholder."""
 
+    person = customers.require_person(name, phone)
+
+    return db.query(
+        f"""
+        SELECT {_CHARGE_COLUMNS}
+        {_CHARGE_JOINS}
+        WHERE res.GuestPersonID = %s
+           OR pc.HolderPersonID = %s
+        ORDER BY c.ChargedAtUTC, c.ChargeID
+        """,
+        (person['PersonID'], person['PersonID'])
+    )
 
 def total(charges):
     return sum((c['Amount'] for c in charges), Decimal('0.00'))
